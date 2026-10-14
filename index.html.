@@ -1,0 +1,130 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ERP-PAS APECJ</title>
+<style>
+body{font-family:Arial,sans-serif;margin:0;background:#f1f5f9;color:#243247}
+header{background:#1a365d;color:white;padding:22px;text-align:center}
+nav{display:flex;flex-wrap:wrap;gap:8px;padding:12px;background:white;justify-content:center}
+button{padding:11px;border:0;border-radius:6px;background:#1a365d;color:white;cursor:pointer;margin:3px}
+nav button{background:#dce6f1;color:#1a365d}
+main{max-width:1000px;margin:auto;padding:15px}
+section{display:none;background:white;padding:18px;margin:12px 0;border-radius:10px}
+section.active{display:block}
+input,select{display:block;width:100%;padding:11px;margin:8px 0 14px;box-sizing:border-box;border:1px solid #ccd4df;border-radius:5px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.card{background:#e5edf7;padding:15px;border-radius:8px}
+table{width:100%;border-collapse:collapse;margin-top:15px}
+th,td{padding:9px;border-bottom:1px solid #ddd;text-align:left}
+.wrap{overflow-x:auto}
+small{color:#536579}
+</style>
+</head>
+<body>
+<header>
+<h1>ERP-PAS APECJ</h1>
+<p>Gestion administrative et financière de l'association</p>
+</header>
+<nav>
+<button onclick="tab('accueil')">Accueil</button>
+<button onclick="tab('membres')">Membres</button>
+<button onclick="tab('finances')">Finances</button>
+<button onclick="tab('rapports')">Rapports</button>
+</nav>
+<main>
+<section id="accueil" class="active">
+<h2>Tableau de bord</h2>
+<div class="cards">
+<div class="card">Membres<strong id="nb">0</strong></div>
+<div class="card">Recettes (FCFA)<strong id="rec">0</strong></div>
+<div class="card">Dépenses (FCFA)<strong id="dep">0</strong></div>
+<div class="card">Solde (FCFA)<strong id="sol">0</strong></div>
+</div>
+<p><small>Les données sont conservées dans le navigateur de cet appareil. Elles ne sont pas automatiquement partagées avec les autres appareils.</small></p>
+</section>
+<section id="membres">
+<h2>Ajouter un membre</h2>
+<form id="fm">
+<label>Numéro d'adhérent<input id="numero" required placeholder="APECJ-001"></label>
+<label>Nom complet<input id="nom" required></label>
+<label>Téléphone<input id="tel" type="tel"></label>
+<label>Village / localité<input id="village"></label>
+<label>Activité<input id="activite"></label>
+<label>Date d'adhésion<input id="dateM" type="date" required></label>
+<label>Statut<select id="statut"><option>Actif</option><option>Suspendu</option><option>Ancien membre</option></select></label>
+<label>Cotisation (FCFA)<input id="cot" type="number" min="0" value="0"></label>
+<button type="submit">Enregistrer le membre</button>
+</form>
+<label>Rechercher un membre<input id="recherche" placeholder="Nom ou numéro"></label>
+<div class="wrap"><table><thead><tr><th>Numéro</th><th>Nom</th><th>Téléphone</th><th>Village</th><th>Statut</th><th>Cotisation</th><th>Action</th></tr></thead><tbody id="listeM"></tbody></table></div>
+</section>
+<section id="finances">
+<h2>Enregistrer une opération</h2>
+<form id="ff">
+<label>Type<select id="type"><option value="recette">Recette</option><option value="depense">Dépense</option></select></label>
+<label>Catégorie<select id="categorie"><option>Cotisation</option><option>Adhésion</option><option>Don</option><option>Subvention</option><option>Activité</option><option>Transport</option><option>Matériel</option><option>Autre</option></select></label>
+<label>Montant (FCFA)<input id="montant" type="number" min="1" required></label>
+<label>Date<input id="dateF" type="date" required></label>
+<label>Payeur ou bénéficiaire<input id="personne"></label>
+<label>Mode de paiement<select id="mode"><option>Espèces</option><option>Wave</option><option>Orange Money</option><option>Virement</option><option>Autre</option></select></label>
+<label>Description<input id="description"></label>
+<button type="submit">Enregistrer l'opération</button>
+</form>
+<div class="wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Catégorie</th><th>Montant</th><th>Action</th></tr></thead><tbody id="listeF"></tbody></table></div>
+</section>
+<section id="rapports">
+<h2>Rapports et sauvegarde</h2>
+<button onclick="exporter()">Exporter les données en CSV</button>
+<button onclick="sauvegarder()">Télécharger une sauvegarde JSON</button>
+<button onclick="window.print()">Imprimer / Enregistrer en PDF</button>
+<p><small>Conserve les fichiers de sauvegarde dans un endroit sûr. N'inscris pas de données confidentielles sur un appareil partagé.</small></p>
+</section>
+</main>
+<script>
+let membres=JSON.parse(localStorage.getItem('apecj_membres')||'[]');
+let operations=JSON.parse(localStorage.getItem('apecj_operations')||'[]');
+const $=id=>document.getElementById(id);
+const fmt=n=>Number(n||0).toLocaleString('fr-FR');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function tab(id){document.querySelectorAll('main section').forEach(s=>s.classList.toggle('active',s.id===id));}
+function save(){localStorage.setItem('apecj_membres',JSON.stringify(membres));localStorage.setItem('apecj_operations',JSON.stringify(operations));}
+$('fm').addEventListener('submit',e=>{
+e.preventDefault();
+let numero=$('numero').value.trim();
+if(membres.some(m=>m.numero.toLowerCase()===numero.toLowerCase())){alert('Ce numéro existe déjà.');return;}
+membres.push({numero,nom:$('nom').value.trim(),tel:$('tel').value.trim(),village:$('village').value.trim(),activite:$('activite').value.trim(),date:$('dateM').value,statut:$('statut').value,cot:Number($('cot').value||0)});
+save();$('fm').reset();render();alert('Membre enregistré.');
+});
+$('ff').addEventListener('submit',e=>{
+e.preventDefault();
+operations.push({id:Date.now(),type:$('type').value,categorie:$('categorie').value,montant:Number($('montant').value),date:$('dateF').value,personne:$('personne').value,mode:$('mode').value,description:$('description').value});
+save();$('ff').reset();render();alert('Opération enregistrée.');
+});
+$('recherche').addEventListener('input',render);
+function supprimerM(i){if(confirm('Supprimer ce membre ?')){membres.splice(i,1);save();render();}}
+function supprimerF(id){if(confirm('Supprimer cette opération ?')){operations=operations.filter(o=>o.id!==id);save();render();}}
+function render(){
+let q=($('recherche').value||'').toLowerCase();
+let visibles=membres.filter(m=>(m.nom+' '+m.numero+' '+m.village).toLowerCase().includes(q));
+$('listeM').innerHTML=visibles.map(m=>{let i=membres.indexOf(m);return `<tr><td>${esc(m.numero)}</td><td>${esc(m.nom)}</td><td>${esc(m.tel)}</td><td>${esc(m.village)}</td><td>${esc(m.statut)}</td><td>${fmt(m.cot)}</td><td><button onclick="supprimerM(${i})">Supprimer</button></td></tr>`}).join('')||'<tr><td colspan="7">Aucun membre enregistré</td></tr>';
+$('listeF').innerHTML=operations.slice().reverse().map(o=>`<tr><td>${esc(o.date)}</td><td>${o.type==='recette'?'Recette':'Dépense'}</td><td>${esc(o.categorie)}</td><td>${fmt(o.montant)}</td><td><button onclick="supprimerF(${o.id})">Supprimer</button></td></tr>`).join('')||'<tr><td colspan="5">Aucune opération enregistrée</td></tr>';
+let r=operations.filter(o=>o.type==='recette').reduce((s,o)=>s+o.montant,0);
+let d=operations.filter(o=>o.type==='depense').reduce((s,o)=>s+o.montant,0);
+$('nb').textContent=membres.length;$('rec').textContent=fmt(r);$('dep').textContent=fmt(d);$('sol').textContent=fmt(r-d);
+}
+function download(n,c,t){let a=document.createElement('a');let u=URL.createObjectURL(new Blob([c],{type:t}));a.href=u;a.download=n;a.click();URL.revokeObjectURL(u);}
+function exporter(){
+let lignes=[['TABLE','Numero','Nom','Telephone','Village','Activite','Date','Statut','Cotisation','Type operation','Categorie','Montant','Date operation']];
+membres.forEach(m=>lignes.push(['Membre',m.numero,m.nom,m.tel,m.village,m.activite,m.date,m.statut,m.cot,'','','','']));
+operations.forEach(o=>lignes.push(['Finance','','','','','','','','',o.type,o.categorie,o.montant,o.date]));
+let csv=lignes.map(l=>l.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');
+download('APECJ_export.csv','\ufeff'+csv,'text/csv;charset=utf-8');
+}
+function sauvegarder(){download('APECJ_sauvegarde.json',JSON.stringify({membres,operations},null,2),'application/json');}
+render();
+</script>
+</body>
+</html>
